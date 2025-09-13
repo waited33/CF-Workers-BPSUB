@@ -34,6 +34,13 @@ export default {
             userAgent.includes('subconverter');
 
         if (url.pathname === '/sub') {
+            if (!url.searchParams.has('host')) {
+                return new Response(JSON.stringify({ error: '请提供 host 参数' }), {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json' },
+                });
+            }
+
             subConverter = url.searchParams.get('subapi') || subConverter;
             if (subConverter.includes("http://")) {
                 subConverter = subConverter.split("//")[1];
@@ -43,7 +50,7 @@ export default {
             }
             subConfig = url.searchParams.get('subconfig') || subConfig;
 
-            const uuid_json = await getSubData();
+            const uuid_json = await getSubData(url.searchParams.get('host'));
             proxyIP = url.searchParams.get('proxyip') || proxyIP;
             const socks5 = (url.searchParams.has('socks5') && url.searchParams.get('socks5') != '') ? url.searchParams.get('socks5') : null;
             const 全局socks5 = (url.searchParams.has('global')) ? true : false;
@@ -283,8 +290,15 @@ export default {
                 return new Response(返回订阅内容, { headers: responseHeaders });
             }
         } else if (url.pathname === '/uuid.json') {
+            if (!url.searchParams.has('host')) {
+                return new Response(JSON.stringify({ error: '请提供 host 参数' }), {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json' },
+                });
+            }
+
             try {
-                const result = await getSubData();
+                const result = await getSubData(url.searchParams.get('host'));
                 return new Response(JSON.stringify(result, null, 2), {
                     headers: { 'Content-Type': 'application/json' },
                 });
@@ -300,7 +314,7 @@ export default {
     }
 };
 
-async function getSubData() {
+async function getSubData(host) {
     function parseVless(vlessUrl) {
         try {
             const url = vlessUrl.substring(8);
@@ -318,7 +332,7 @@ async function getSubData() {
             return null;
         }
     }
-    const response = await fetch('https://cfxr.eu.org/getSub');
+    const response = await fetch('https://cfxr.eu.org/getSub?host=' + host);
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -1376,9 +1390,21 @@ async function subHtml(request) {
         </div>
         
         <div class="form-container">
+            <!-- 代理域名设置 -->
+            <div class="section">
+                <div class="section-title">🌐 代理域名设置(必填)</div>
+                <div class="form-group">
+                    <label for="proxyHost">HOST：</label>
+                    <input type="text" id="proxyHost" placeholder="proxy.pages.dev" value="">
+                    <div class="example">🔗 设置用于代理的域名地址，例如：proxy.pages.dev
+这个域名将用于代理连接到Cloudflare服务
+                    </div>
+                </div>
+            </div>
+            
             <!-- 优选IP部分 -->
             <div class="section">
-                <div class="section-title">⚡️ 优选IP设置</div>
+                <div class="section-title">⚡️ 优选IP设置(必填)</div>
                 
                 <!-- 优选IP模式选择 -->
                 <div class="form-group">
@@ -1418,7 +1444,7 @@ async function subHtml(request) {
             
             <!-- PROXYIP部分 -->
             <div class="section collapsible collapsed">
-                <div class="section-title" onclick="toggleSection(this)">🔧 落地IP设置</div>
+                <div class="section-title" onclick="toggleSection(this)">🔧 落地IP设置(可选)</div>
                 <div class="section-content">
                     <!-- 选项切换 -->
                     <div class="form-group">
@@ -1501,7 +1527,7 @@ async function subHtml(request) {
             
             <!-- 订阅转换设置 -->
             <div class="section collapsible collapsed">
-                <div class="section-title" onclick="toggleSection(this)">⚙️ 订阅转换设置</div>
+                <div class="section-title" onclick="toggleSection(this)">⚙️ 订阅转换设置(可选)</div>
                 <div class="section-content">
                     <div class="form-group">
                         <label for="subapi">订阅转换后端：</label>
@@ -1556,6 +1582,7 @@ async function subHtml(request) {
             const formData = {
                 ips: document.getElementById('ips').value,
                 subGenerator: document.getElementById('subGenerator').value,
+                proxyHost: document.getElementById('proxyHost').value,
                 proxyip: document.getElementById('proxyip').value,
                 socks5: document.getElementById('socks5').value,
                 subapi: document.getElementById('subapi').value,
@@ -1589,6 +1616,7 @@ async function subHtml(request) {
                 // 填充表单字段
                 if (formData.ips) document.getElementById('ips').value = formData.ips;
                 if (formData.subGenerator) document.getElementById('subGenerator').value = formData.subGenerator;
+                if (formData.proxyHost) document.getElementById('proxyHost').value = formData.proxyHost;
                 if (formData.proxyip) document.getElementById('proxyip').value = formData.proxyip;
                 if (formData.socks5) document.getElementById('socks5').value = formData.socks5;
                 if (formData.subapi) document.getElementById('subapi').value = formData.subapi;
@@ -1629,7 +1657,7 @@ async function subHtml(request) {
         
         // 设置表单字段的自动保存事件监听器
         function setupAutoSave() {
-            const fields = ['ips', 'subGenerator', 'proxyip', 'socks5', 'subapi', 'subconfig'];
+            const fields = ['ips', 'subGenerator', 'proxyHost', 'proxyip', 'socks5', 'subapi', 'subconfig'];
             
             // 为文本输入字段添加事件监听
             fields.forEach(fieldId => {
@@ -1667,10 +1695,17 @@ async function subHtml(request) {
         function generateSubscription() {
             const ips = document.getElementById('ips').value.trim();
             const subGenerator = document.getElementById('subGenerator').value.trim();
+            const proxyHost = document.getElementById('proxyHost').value.trim();
             const proxyip = document.getElementById('proxyip').value.trim();
             const socks5 = document.getElementById('socks5').value.trim();
             const subapi = document.getElementById('subapi').value.trim();
             const subconfig = document.getElementById('subconfig').value.trim();
+            
+            // 检查代理域名是否为空
+            if (!proxyHost) {
+                alert('⚠️ 代理域名不能为空！\\n\\n请输入代理域名，例如：proxy.pages.dev');
+                return;
+            }
             
             // 获取选择的IP模式和代理模式
             const ipMode = document.querySelector('input[name="ipMode"]:checked').value;
@@ -1684,6 +1719,9 @@ async function subHtml(request) {
             let url = \`https://\${currentDomain}/sub\`;
             
             const params = new URLSearchParams();
+            
+            // 添加代理域名参数
+            params.append('host', proxyHost);
             
             // 根据IP模式处理参数
             if (ipMode === 'subscription') {
