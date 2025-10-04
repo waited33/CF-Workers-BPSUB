@@ -1,30 +1,25 @@
-
-let subConverter = 'sUBaPI.cMlIUSSSS.nET';
-let subConfig = 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Mini_MultiMode.ini';
-let subProtocol = 'https';
-let SUBUpdateTime = 6; // 单位小时
-let ips = ['3Q.bestip-one.cf.090227.xyz#感谢白嫖哥t.me/bestip_one'];
-let FileName = 'BPSUB';
-let EndPS = '';
+const SUBUpdateTime = 6; // 单位小时
 const regex = /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|\[.*\]):?(\d+)?#?(.*)?$/;
-let hosts = [];
 export default {
     async fetch(request, env, ctx) {
-        subConverter = env.SUBAPI || subConverter;
+        let subProtocol = 'https';
+        let subConverter = env.SUBAPI || 'sUBaPI.cMlIUSSSS.nET';
         if (subConverter.includes("http://")) {
             subConverter = subConverter.split("//")[1];
             subProtocol = 'http';
         } else {
             subConverter = subConverter.split("//")[1] || subConverter;
         }
-        subConfig = env.SUBCONFIG || subConfig;
+        let subConfig = env.SUBCONFIG || 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Mini_MultiMode.ini';
         const proxyIP = env.PROXYIP || null;
+        let ips = ['3Q.bestip-one.cf.090227.xyz#感谢白嫖哥t.me/bestip_one'];
         if (env.ADD) ips = await 整理成数组(env.ADD);
-        FileName = env.SUBNAME || FileName;
-        EndPS = env.PS || EndPS;
+        let FileName = env.SUBNAME || 'BPSUB';
+        let EndPS = env.PS || '';
 
         const url = new URL(request.url);
         // 获取和处理 host 参数
+        let hosts = [];
         if (url.searchParams.has('host')) {
             hosts = url.searchParams.get('host').split('|').filter(host => host.trim());
         } else if (env.HOST) {
@@ -40,6 +35,26 @@ export default {
             request.headers.get('subconverter-version') ||
             userAgent.includes('subconverter');
 
+        const subapiList = [{
+            label: `🛡️ ${FileName}-默认内置后端`,
+            value: `${subProtocol}://${subConverter.toLowerCase()}`
+        }, {
+            label: '🔄 CM提供-负载均衡后端',
+            value: 'https://subapi.cmliussss.net'
+        }, {
+            label: '⚖️ Lfree提供-负载均衡后端',
+            value: 'https://api.sub.zaoy.cn'
+        }, {
+            label: '🚀 周润发提供-后端',
+            value: 'https://subapi.zrfme.com'
+        }, {
+            label: '🐑 肥羊提供-增强型后端',
+            value: 'https://url.v1.mk'
+        }, {
+            label: '🎭 肥羊提供-备用后端',
+            value: 'https://sub.d1.mk'
+        }];
+
         if (url.pathname === '/sub') {
             if (!bphost) {
                 return new Response(JSON.stringify({
@@ -51,14 +66,14 @@ export default {
                 });
             } else if (bphost.includes("*")) bphost = bphost.replace("*", Date.now().toString());
 
-            subConverter = url.searchParams.get('subapi') || subConverter;
+            subConverter = (url.searchParams.has('subapi') && url.searchParams.get('subapi') !== 'default') ? url.searchParams.get('subapi') : subConverter;
             if (subConverter.includes("http://")) {
                 subConverter = subConverter.split("//")[1];
                 subProtocol = 'http';
             } else {
                 subConverter = subConverter.split("//")[1] || subConverter;
             }
-            subConfig = url.searchParams.get('subconfig') || subConfig;
+            subConfig = (url.searchParams.has('subconfig') && url.searchParams.get('subconfig') !== 'default') ? url.searchParams.get('subconfig') : subConfig;
             const trojan = url.searchParams.get('trojan') || false;
             const uuid = url.searchParams.get('uuid') || env.UUID;
             const uuid_json = await getLocalData(bphost, uuid);
@@ -249,7 +264,7 @@ export default {
                     }
                 }
 
-                const newAddapi = await 整理优选列表(addapi);
+                const newAddapi = await 整理优选列表(addapi, FileName);
                 // 将newAddapi数组添加到add数组,并对add数组去重
                 add = [...new Set([...add, ...newAddapi])];
 
@@ -362,17 +377,160 @@ export default {
             return new Response(JSON.stringify(subapiList, null, 2), {
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
-                    'Cache-Control': 'public, max-age=604800', // 7天缓存 (7*24*3600)
+                    'Cache-Control': 'public, max-age=86400', // 1天缓存 (1*24*3600)
                     'Access-Control-Allow-Origin': '*',
                     'Access-Control-Allow-Methods': 'GET',
                     'Access-Control-Allow-Headers': 'Content-Type'
                 }
             });
         } else if (url.pathname === '/subconfig.json') {
+            const subConfigList = [{
+                label: 'BPSUB',
+                options: [{
+                    label: `${FileName} 默认内置规则`,
+                    value: subConfig
+                }]
+            }, {
+                label: 'ACL4SSR',
+                options: [{
+                    label: 'ACL4SSR_Online 默认版 分组比较全',
+                    value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online.ini'
+                }, {
+                    label: 'ACL4SSR_Online_AdblockPlus 更多去广告',
+                    value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_AdblockPlus.ini'
+                }, {
+                    label: 'ACL4SSR_Online_MultiCountry 多国分组',
+                    value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_MultiCountry.ini'
+                }, {
+                    label: 'ACL4SSR_Online_NoAuto 无自动测速',
+                    value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_NoAuto.ini'
+                }, {
+                    label: 'ACL4SSR_Online_NoReject 无广告拦截规则',
+                    value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_NoReject.ini'
+                }, {
+                    label: 'ACL4SSR_Online_Mini 精简版',
+                    value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Mini.ini'
+                }, {
+                    label: 'ACL4SSR_Online_Mini_AdblockPlus.ini 精简版 更多去广告',
+                    value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Mini_AdblockPlus.ini'
+                }, {
+                    label: 'ACL4SSR_Online_Mini_NoAuto.ini 精简版 不带自动测速',
+                    value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Mini_NoAuto.ini'
+                }, {
+                    label: 'ACL4SSR_Online_Mini_Fallback.ini 精简版 带故障转移',
+                    value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Mini_Fallback.ini'
+                }, {
+                    label: 'ACL4SSR_Online_Mini_MultiMode.ini 精简版 自动测速、故障转移、负载均衡',
+                    value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Mini_MultiMode.ini'
+                }, {
+                    label: 'ACL4SSR_Online_Mini_MultiCountry.ini 精简版 带港美日国家',
+                    value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Mini_MultiCountry.ini'
+                }, {
+                    label: 'ACL4SSR_Online_Full 全分组 重度用户使用',
+                    value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full.ini'
+                }, {
+                    label: 'ACL4SSR_Online_Full_MultiMode.ini 全分组 多模式 重度用户使用',
+                    value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full_MultiMode.ini'
+                }, {
+                    label: 'ACL4SSR_Online_Full_NoAuto.ini 全分组 无自动测速 重度用户使用',
+                    value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full_NoAuto.ini'
+                }, {
+                    label: 'ACL4SSR_Online_Full_AdblockPlus 全分组 重度用户使用 更多去广告',
+                    value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full_AdblockPlus.ini'
+                }, {
+                    label: 'ACL4SSR_Online_Full_Netflix 全分组 重度用户使用 奈飞全量',
+                    value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full_Netflix.ini'
+                }, {
+                    label: 'ACL4SSR_Online_Full_Google 全分组 重度用户使用 谷歌细分',
+                    value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full_Google.ini'
+                }]
+            }, {
+                label: 'CM规则',
+                options: [{
+                    label: 'CM_Online 默认版 识别港美地区',
+                    value: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online.ini'
+                }, {
+                    label: 'CM_Online_MultiCountry 识别港美地区 负载均衡',
+                    value: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_MultiCountry.ini'
+                }, {
+                    label: 'CM_Online_MultiCountry_CF 识别港美地区、CloudFlareCDN 负载均衡 Worker节点专用',
+                    value: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_MultiCountry_CF.ini'
+                }, {
+                    label: 'CM_Online_Full 识别多地区分组',
+                    value: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_Full.ini'
+                }, {
+                    label: 'CM_Online_Full_CF 识别多地区、CloudFlareCDN 分组 Worker节点专用',
+                    value: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_Full_CF.ini'
+                }, {
+                    label: 'CM_Online_Full_MultiMode 识别多地区 负载均衡',
+                    value: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_Full_MultiMode.ini'
+                }, {
+                    label: 'CM_Online_Full_MultiMode_CF 识别多地区、CloudFlareCDN 负载均衡 Worker节点专用',
+                    value: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_Full_MultiMode_CF.ini'
+                }]
+            }, {
+                label: 'universal',
+                options: [{
+                    label: 'No-Urltest',
+                    value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/universal/no-urltest.ini'
+                }, {
+                    label: 'Urltest',
+                    value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/universal/urltest.ini'
+                }]
+            }, {
+                label: 'customized',
+                options: [{
+                    label: 'Nirvana',
+                    value: 'https://raw.githubusercontent.com/Mazetsz/ACL4SSR/master/Clash/config/V2rayPro.ini'
+                }, {
+                    label: 'V2Pro',
+                    value: 'https://raw.githubusercontent.com/Mazeorz/airports/master/Clash/V2Pro.ini'
+                }, {
+                    label: '史迪仔-自动测速',
+                    value: 'https://raw.githubusercontent.com/Mazeorz/airports/master/Clash/Stitch.ini'
+                }, {
+                    label: '史迪仔-负载均衡',
+                    value: 'https://raw.githubusercontent.com/Mazeorz/airports/master/Clash/Stitch-Balance.ini'
+                }, {
+                    label: 'Maying',
+                    value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/customized/maying.ini'
+                }, {
+                    label: 'Ytoo',
+                    value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/customized/ytoo.ini'
+                }, {
+                    label: 'FlowerCloud',
+                    value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/customized/flowercloud.ini'
+                }, {
+                    label: 'NyanCAT',
+                    value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/customized/nyancat.ini'
+                }, {
+                    label: 'Nexitally',
+                    value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/customized/nexitally.ini'
+                }, {
+                    label: 'SoCloud',
+                    value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/customized/socloud.ini'
+                }, {
+                    label: 'ARK',
+                    value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/customized/ark.ini'
+                }, {
+                    label: 'ssrCloud',
+                    value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/customized/ssrcloud.ini'
+                }]
+            }, {
+                label: 'Special',
+                options: [{
+                    label: 'NeteaseUnblock(仅规则，No-Urltest)',
+                    value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/special/netease.ini'
+                }, {
+                    label: 'Basic(仅GEOIP CN + Final)',
+                    value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/special/basic.ini'
+                }]
+            }];
+
             return new Response(JSON.stringify(subConfigList, null, 2), {
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
-                    'Cache-Control': 'public, max-age=604800', // 7天缓存 (7*24*3600)
+                    'Cache-Control': 'public, max-age=86400', // 1天缓存 (1*24*3600)
                     'Access-Control-Allow-Origin': '*',
                     'Access-Control-Allow-Methods': 'GET',
                     'Access-Control-Allow-Headers': 'Content-Type'
@@ -387,19 +545,19 @@ export default {
                     headers: { 'Content-Type': 'application/json' }
                 });
             }
-            
+
             // 安全验证：检查目标URL是否在允许的订阅转换后端列表中
             const allowedUrls = subapiList.map(item => item.value);
             if (!allowedUrls.includes(targetUrl)) {
-                return new Response(JSON.stringify({ 
-                    success: false, 
-                    error: 'Unauthorized URL - Only predefined subscription backends are allowed' 
+                return new Response(JSON.stringify({
+                    success: false,
+                    error: 'Unauthorized URL - Only predefined subscription backends are allowed'
                 }), {
                     status: 403,
                     headers: { 'Content-Type': 'application/json' }
                 });
             }
-            
+
             try {
                 const versionUrl = targetUrl == 'default' ? `${subProtocol}://${subConverter.toLowerCase()}/version` : targetUrl + '/version';
                 const response = await fetch(versionUrl, {
@@ -409,33 +567,33 @@ export default {
                         'User-Agent': 'Mozilla/5.0 (compatible; CF-Workers-BPSUB/1.0)'
                     }
                 });
-                
+
                 if (response.ok) {
                     const versionText = await response.text();
-                    return new Response(JSON.stringify({ 
-                        success: true, 
+                    return new Response(JSON.stringify({
+                        success: true,
                         version: versionText.trim()
                     }), {
                         headers: { 'Content-Type': 'application/json' }
                     });
                 } else {
-                    return new Response(JSON.stringify({ 
-                        success: false, 
-                        error: 'HTTP ' + response.status 
+                    return new Response(JSON.stringify({
+                        success: false,
+                        error: 'HTTP ' + response.status
                     }), {
                         headers: { 'Content-Type': 'application/json' }
                     });
                 }
             } catch (error) {
-                return new Response(JSON.stringify({ 
-                    success: false, 
-                    error: error.message 
+                return new Response(JSON.stringify({
+                    success: false,
+                    error: error.message
                 }), {
                     headers: { 'Content-Type': 'application/json' }
                 });
             }
         } else {
-            return await subHtml(request, hosts.length);
+            return await subHtml(request, hosts.length, FileName, subProtocol, subConverter, subConfig);
         }
     }
 };
@@ -511,7 +669,7 @@ async function 整理成数组(内容) {
     return 地址数组;
 }
 
-async function 整理优选列表(api) {
+async function 整理优选列表(api, FileName) {
     if (!api || api.length === 0) return [];
 
     let newapi = "";
@@ -595,14 +753,14 @@ function getDateString() {
     return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
 }
 
-async function subHtml(request, hostLength = hosts.length) {
+async function subHtml(request, hostLength = 0, FileName, subProtocol, subConverter, subConfig) {
     const HTML = `
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${FileName} Snipaste订阅生成器</title>
+    <title>${FileName} Snippets订阅生成器</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1807,7 +1965,7 @@ async function subHtml(request, hostLength = hosts.length) {
                 </a>
             </div>
             <h1>🚀 ${FileName}</h1>
-            <p>Cloudflare Snipaste 订阅生成器</p>
+            <p>Cloudflare Snippets 订阅生成器</p>
         </div>
         
         <div class="form-container">
@@ -1922,9 +2080,10 @@ async function subHtml(request, hostLength = hosts.length) {
                                     <select id="snippetSourceSelect" onchange="changeSnippetSource()">
                                         <option value="v" selected>🎯 白嫖哥源码</option>
                                         <option value="t12">📘 天书12源码</option>
-                                        <option value="t13">📗 天书13源码(不支持ios客户端、ed配置)</option>
+                                        <option value="t13">📗 天书13源码(不支持ed配置)</option>
                                         <option value="my">🔥 ymyuuu源码(支持xhttp协议)</option>
                                         <option value="ca110us">🎠 ca110us源码(trojan协议)</option>
+                                        <option value="ak">😂 AK优化源码(stallTCP优化传输机制)</option>
                                     </select>
                                 </div>
 
@@ -2228,13 +2387,17 @@ async function subHtml(request, hostLength = hosts.length) {
         </div>
         
         <div class="footer">
-            <p>© 2025 BPSUB - Powered by Cloudflare Snipaste | 感谢白嫖哥提供维护的 - <a href="https://t.me/v2rayByCf" target="_blank" class="thanks-link" title="访问Snipaste节点分享频道">🔗 Snipaste节点</a></p>
+            <p>© 2025 BPSUB - Powered by Cloudflare Snippets | 感谢白嫖哥提供维护的 - <a href="https://t.me/v2rayByCf" target="_blank" class="thanks-link" title="访问Snipaste节点分享频道">🔗 Snipaste节点</a></p>
         </div>
     </div>
     
     <script>
         // 本地存储配置
         const STORAGE_KEY = 'bpsub_form_data';
+        
+        // 服务器端配置变量
+        const DEFAULT_SUBAPI = '${subProtocol}://${subConverter.toLowerCase()}';
+        const DEFAULT_SUBCONFIG = '${subConfig}';
         
         // 全局变量存储JSON数据
         let subApiData = null;
@@ -2321,11 +2484,18 @@ async function subHtml(request, hostLength = hosts.length) {
                     hideSubApiStatus();
                 }
             } else {
-                // 没有缓存，默认选中内置默认后端
-                const defaultValue = 'default';
-                select.value = defaultValue;
-                input.value = defaultValue;
-                input.style.display = 'none';
+                // 没有缓存，如果JSON加载成功，默认选中第一个选项，否则使用内置默认值
+                if (subApiData && subApiData.length > 0) {
+                    const firstOption = subApiData[0];
+                    select.value = firstOption.value;
+                    input.value = firstOption.value;
+                    input.style.display = 'none';
+                } else {
+                    // JSON未加载成功，使用内置默认值
+                    select.value = DEFAULT_SUBAPI;
+                    input.value = DEFAULT_SUBAPI;
+                    input.style.display = 'none';
+                }
             }
             
             // 绑定change事件
@@ -2337,10 +2507,7 @@ async function subHtml(request, hostLength = hosts.length) {
                 } else {
                     input.value = this.value;
                     input.style.display = 'none';
-                    // 只有非默认后端才检查版本
-                    if (this.value !== 'default') {
-                        checkSubApiVersion(this.value);
-                    }
+                    checkSubApiVersion(this.value);
                 }
                 saveFormData();
             });
@@ -2479,11 +2646,18 @@ async function subHtml(request, hostLength = hosts.length) {
                     input.style.display = 'block';
                 }
             } else {
-                // 没有缓存，默认选中BPSUB内置默认规则
-                const defaultValue = 'default';
-                select.value = defaultValue;
-                input.value = defaultValue;
-                input.style.display = 'none';
+                // 没有缓存，如果JSON加载成功，默认选中第一个选项，否则使用内置默认值
+                if (subConfigData && subConfigData.length > 0 && subConfigData[0].options && subConfigData[0].options.length > 0) {
+                    const firstOption = subConfigData[0].options[0];
+                    select.value = firstOption.value;
+                    input.value = firstOption.value;
+                    input.style.display = 'none';
+                } else {
+                    // JSON未加载成功，使用内置默认值
+                    select.value = DEFAULT_SUBCONFIG;
+                    input.value = DEFAULT_SUBCONFIG;
+                    input.style.display = 'none';
+                }
             }
             
             // 绑定change事件
@@ -2925,12 +3099,12 @@ async function subHtml(request, hostLength = hosts.length) {
             }
             
             // 处理订阅转换后端（当选择内置默认后端时不添加参数）
-            if (subapi && subapi !== '${subProtocol}://${subConverter.toLowerCase()}') {
+            if (subapi && subapi !== DEFAULT_SUBAPI) {
                 params.append('subapi', subapi);
             }
             
             // 处理订阅转换配置（当选择内置默认规则时不添加参数）
-            if (subconfig && subconfig !== '${subConfig}') {
+            if (subconfig && subconfig !== DEFAULT_SUBCONFIG) {
                 params.append('subconfig', subconfig);
             }
             
@@ -3383,7 +3557,8 @@ async function subHtml(request, hostLength = hosts.length) {
             't12': 'https://raw.githubusercontent.com/cmliu/CF-Workers-BPSUB/main/snippet/t12.js', 
             't13': 'https://raw.githubusercontent.com/cmliu/CF-Workers-BPSUB/main/snippet/t13.js',
             'my': 'https://raw.githubusercontent.com/cmliu/CF-Workers-BPSUB/main/snippet/my.js',
-            'ca110us': 'https://raw.githubusercontent.com/cmliu/CF-Workers-BPSUB/main/snippet/ca110us.js'
+            'ca110us': 'https://raw.githubusercontent.com/cmliu/CF-Workers-BPSUB/main/snippet/ca110us.js',
+            'ak': 'https://raw.githubusercontent.com/cmliu/CF-Workers-BPSUB/main/snippet/ak.js'
         };
 
         // 获取当前选中的源码类型
@@ -4009,166 +4184,3 @@ function encodeBase64(data) {
     const padding = 3 - (binary.length % 3 || 3);
     return base64.slice(0, base64.length - padding) + '=='.slice(0, padding);
 }
-
-const subapiList = [{
-    label: `🛡️ ${FileName}-默认内置后端`,
-    value: `${subProtocol}://${subConverter.toLowerCase()}`
-}, {
-    label: '🔄 CM提供-负载均衡后端',
-    value: 'https://subapi.cmliussss.net'
-}, {
-    label: '⚖️ Lfree提供-负载均衡后端',
-    value: 'https://api.sub.zaoy.cn'
-}, {
-    label: '🚀 周润发提供-后端',
-    value: 'https://subapi.zrfme.com'
-}, {
-    label: '🐑 肥羊提供-增强型后端',
-    value: 'https://url.v1.mk'
-}, {
-    label: '🎭 肥羊提供-备用后端',
-    value: 'https://sub.d1.mk'
-}];
-
-const subConfigList = [{
-    label: 'BPSUB',
-    options: [{
-        label: `${FileName} 默认内置规则`,
-        value: subConfig
-    }]
-}, {
-    label: 'ACL4SSR',
-    options: [{
-        label: 'ACL4SSR_Online 默认版 分组比较全',
-        value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online.ini'
-    }, {
-        label: 'ACL4SSR_Online_AdblockPlus 更多去广告',
-        value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_AdblockPlus.ini'
-    }, {
-        label: 'ACL4SSR_Online_MultiCountry 多国分组',
-        value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_MultiCountry.ini'
-    }, {
-        label: 'ACL4SSR_Online_NoAuto 无自动测速',
-        value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_NoAuto.ini'
-    }, {
-        label: 'ACL4SSR_Online_NoReject 无广告拦截规则',
-        value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_NoReject.ini'
-    }, {
-        label: 'ACL4SSR_Online_Mini 精简版',
-        value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Mini.ini'
-    }, {
-        label: 'ACL4SSR_Online_Mini_AdblockPlus.ini 精简版 更多去广告',
-        value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Mini_AdblockPlus.ini'
-    }, {
-        label: 'ACL4SSR_Online_Mini_NoAuto.ini 精简版 不带自动测速',
-        value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Mini_NoAuto.ini'
-    }, {
-        label: 'ACL4SSR_Online_Mini_Fallback.ini 精简版 带故障转移',
-        value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Mini_Fallback.ini'
-    }, {
-        label: 'ACL4SSR_Online_Mini_MultiMode.ini 精简版 自动测速、故障转移、负载均衡',
-        value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Mini_MultiMode.ini'
-    }, {
-        label: 'ACL4SSR_Online_Mini_MultiCountry.ini 精简版 带港美日国家',
-        value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Mini_MultiCountry.ini'
-    }, {
-        label: 'ACL4SSR_Online_Full 全分组 重度用户使用',
-        value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full.ini'
-    }, {
-        label: 'ACL4SSR_Online_Full_MultiMode.ini 全分组 多模式 重度用户使用',
-        value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full_MultiMode.ini'
-    }, {
-        label: 'ACL4SSR_Online_Full_NoAuto.ini 全分组 无自动测速 重度用户使用',
-        value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full_NoAuto.ini'
-    }, {
-        label: 'ACL4SSR_Online_Full_AdblockPlus 全分组 重度用户使用 更多去广告',
-        value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full_AdblockPlus.ini'
-    }, {
-        label: 'ACL4SSR_Online_Full_Netflix 全分组 重度用户使用 奈飞全量',
-        value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full_Netflix.ini'
-    }, {
-        label: 'ACL4SSR_Online_Full_Google 全分组 重度用户使用 谷歌细分',
-        value: 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full_Google.ini'
-    }]
-}, {
-    label: 'CM规则',
-    options: [{
-        label: 'CM_Online 默认版 识别港美地区',
-        value: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online.ini'
-    }, {
-        label: 'CM_Online_MultiCountry 识别港美地区 负载均衡',
-        value: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_MultiCountry.ini'
-    }, {
-        label: 'CM_Online_MultiCountry_CF 识别港美地区、CloudFlareCDN 负载均衡 Worker节点专用',
-        value: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_MultiCountry_CF.ini'
-    }, {
-        label: 'CM_Online_Full 识别多地区分组',
-        value: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_Full.ini'
-    }, {
-        label: 'CM_Online_Full_CF 识别多地区、CloudFlareCDN 分组 Worker节点专用',
-        value: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_Full_CF.ini'
-    }, {
-        label: 'CM_Online_Full_MultiMode 识别多地区 负载均衡',
-        value: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_Full_MultiMode.ini'
-    }, {
-        label: 'CM_Online_Full_MultiMode_CF 识别多地区、CloudFlareCDN 负载均衡 Worker节点专用',
-        value: 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_Full_MultiMode_CF.ini'
-    }]
-}, {
-    label: 'universal',
-    options: [{
-        label: 'No-Urltest',
-        value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/universal/no-urltest.ini'
-    }, {
-        label: 'Urltest',
-        value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/universal/urltest.ini'
-    }]
-}, {
-    label: 'customized',
-    options: [{
-        label: 'Nirvana',
-        value: 'https://raw.githubusercontent.com/Mazetsz/ACL4SSR/master/Clash/config/V2rayPro.ini'
-    }, {
-        label: 'V2Pro',
-        value: 'https://raw.githubusercontent.com/Mazeorz/airports/master/Clash/V2Pro.ini'
-    }, {
-        label: '史迪仔-自动测速',
-        value: 'https://raw.githubusercontent.com/Mazeorz/airports/master/Clash/Stitch.ini'
-    }, {
-        label: '史迪仔-负载均衡',
-        value: 'https://raw.githubusercontent.com/Mazeorz/airports/master/Clash/Stitch-Balance.ini'
-    }, {
-        label: 'Maying',
-        value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/customized/maying.ini'
-    }, {
-        label: 'Ytoo',
-        value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/customized/ytoo.ini'
-    }, {
-        label: 'FlowerCloud',
-        value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/customized/flowercloud.ini'
-    }, {
-        label: 'NyanCAT',
-        value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/customized/nyancat.ini'
-    }, {
-        label: 'Nexitally',
-        value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/customized/nexitally.ini'
-    }, {
-        label: 'SoCloud',
-        value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/customized/socloud.ini'
-    }, {
-        label: 'ARK',
-        value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/customized/ark.ini'
-    }, {
-        label: 'ssrCloud',
-        value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/customized/ssrcloud.ini'
-    }]
-}, {
-    label: 'Special',
-    options: [{
-        label: 'NeteaseUnblock(仅规则，No-Urltest)',
-        value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/special/netease.ini'
-    }, {
-        label: 'Basic(仅GEOIP CN + Final)',
-        value: 'https://cdn.jsdelivr.net/gh/SleepyHeeead/subconverter-config@master/remote-config/special/basic.ini'
-    }]
-}];
